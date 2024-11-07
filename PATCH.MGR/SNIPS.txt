@@ -1,0 +1,151 @@
+﻿//
+// MS READYNESS TOOL:
+https://learn.microsoft.com/en-us/troubleshoot/windows-server/installing-updates-features-roles/fix-windows-update-errors
+// MS CHECK APPLIED UPDATES:
+https://learn.microsoft.com/en-us/answers/questions/761564/there-are-multiple-ways-to-check-for-applied-updat
+https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-hotfix?view=powershell-5.1
+https://www.nirsoft.net/utils/wul.html https://www.benecke.cloud/windows-10-get-export-installed-updates/
+https://powershellexplained.com/2017-04-22-Powershell-installing-remote-software/
+https://www.advancedinstaller.com/silent-install-exe-using-powershell-and-cmd.html
+https://www.anyviewer.com/how-to/install-software-remotely-0427.html
+https://www.action1.com/how-to-use-wmic-remotely-to-install-software-on-windows/
+https://www.infoalias.com/installing-msi-and-exe-files-on-remote-computers-using-powershell/
+https://tibbsforge.com/powershell-script-to-install-exe-silently-and-remotely/
+http://vmwareinsight.com/Tips/2016/7/5799902/Powershell-Script-to-Copy-and-Install-exe-to-multiple-remote-computers
+https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/msiexec
+https://learn.microsoft.com/en-us/windows/win32/msi/standard-installer-command-line-options
+https://www.advancedinstaller.com/silent-install-exe-msi-applications.html
+https://www.advancedinstaller.com/user-guide/msiexec.html
+// MS SEND TEXT TO CLIPBOARD:
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.clipboard?view=windowsdesktop-8.0&redirectedfrom=MSDN
+// *************************************************************************************************************:
+//
+// Forces all instances to close by killing process threads:
+// EXIT/CLOSE APP & THREADS:
+//System.Windows.Forms.Application.ExitThread();
+//System.Windows.Forms.Application.Exit();
+//Environment.Exit(0);
+//Application.Exit();
+//Application.Restart();
+//Environment.Exit(0);
+//
+private void TSRebootSystems_Click(object sender, EventArgs e)
+{
+    if (MessageBox.Show("Are you sure that you would like to cancel the installer?", "Cancel Installer", MessageBoxButtons.YesNo) == DialogResult.Yes)
+    {
+        REBOOTSys();
+    }
+    AddToNotification($"NOTE - USER CANCELED SYSTEM REBOOTS!:", Color.Red);
+    while (MessageBox.Show("WARNING - PROCEED WITH SYSTEM REBOOTS?", "PATCH MGR v2.5", MessageBoxButtons.YesNo) == DialogResult.Yes)
+    {
+        REBOOTSys();
+    }
+    AddToNotification($"NOTE - USER CANCELED SYSTEM REBOOTS!:", Color.Red);
+}
+//
+// RETRIEVE INSTALLED PATCH:
+GETHFCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} GET-HOTFIX -COMPUTERNAME {REMSYSName}";
+GETHFCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} DISM /ONLINE /GET-PACKAGES";
+GET-HOTFIX -COMPUTERNAME PDCDSSRCS1  | WHERE-OBJECT -PROPERTY HOTFIXID -MATCH "KB5039334"
+GETHFCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} DISM /ONLINE /GET-PACKAGES";
+PSCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} DISM /ONLINE /GET-PACKAGES";
+PSCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} GET-HOTFIX -COMPUTERNAME {REMSYSName}";
+//
+// LAST REBOOT:
+GET-CIMINSTANCE -CLASSNAME Win32_OperatingSystem | SELECT -EXP LASTBOOTUPTIME
+GET-CIMINSTANCE Win32_OperatingSystem -COMPUTERNAME PDCRTS1 | SELECT-OBJECT PSCOMPUTERNAME,LASTBOOTUPTIME
+//
+// UNINSTALL:
+WUSU /UNINSTALL /KB:KB5032391 /QUIET /NORESTART
+WUSA /UNINSTALL /KB:KB5034119 /QUIET /FORCERESTART 
+DISM /ONLINE /REMOVE-PACKAGE /PACKAGENAME:KB5032391
+WUSU /UNINSTALL /KB:{REMFILEPath} /QUIET /NORESTART"; 
+WUSA /UNINSTALL /KB:KB5034119 /QUIET /NORESTART /LOGPATH:C:\0_SCRIPTS\PATCH.MGR\DISM-UPDATE.REMOVAL.log /LOGLEVEL:3 
+DISM /ONLINE /REMOVE-PACKAGE /PACKAGENAME:KB5034119 /QUIET /NORESTART /LOGPATH:C:\0_SCRIPTS\PATCH.MGR\DISM-UPDATE.REMOVAL.log /LOGLEVEL:3 
+//
+// MSI INSTALLER:
+MSIEXEC /PACKAGE C:\TEMP\PATCHES\PS.msi /QUIET ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1 ADD_FILE_CONTEXT_MENU_RUNPOWERSHELL=1 ENABLE_PSREMOTING=1 REGISTER_MANIFEST=1 USE_MU=1 ENABLE_MU=1 ADD_PATH=1 
+//
+// GET INSTALLED PATCHES:
+DISM /ONLINE /GET-PACKAGES /FORMAT:TABLE | FINDSTR /i "KB"
+DISM /ONLINE /GET-PACKAGES /FORMAT:TABLE >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.GHF.csv 
+DISM /ONLINE /GET-PACKAGES | FINDSTR 'KB' >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.GHF.csv 
+DISM /ONLINE /GET-PACKAGES /FORMATE:TABLE | FINDSTR /i "package_for" 
+DISM /ONLINE /GET-PACKAGES | SELECT-STRING KB5034119 
+//
+SYSTEMINFO | FIND “KB”
+GET-HOTFIX 
+//
+WMIC QFE LIST FULL
+WMIC QFE LIST FULL >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.WMIC.FULL.csv 
+WMIC QFE LIST BRIEF >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.WMIC.BRIEF.csv 
+WMIC QFE LIST BRIEF | FIND "KB5032391" >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.WMIC.FS.csv 
+WMIC QFE LIST FULL /FORMAT:TABLE >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.WMIC.csv
+WMIC QFE LIST BRIEF | FIND "KB" & C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRCS1
+WMIC QFE LIST WMIC QFE LIST BRIEF /FORMAT:TABLE SYSTEMINFO | FINDSTR KB5034119
+//
+(GET-HOTFIX | SORT-OBJECT -PROPERTY INSTALLEDON) >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.GHF.csv 
+GET-HOTFIX -DESCRIPTION SECURITY* -COMPUTERNAME PDCDSSRCS1 >> C:\0_SVN\7_LOGS\PATCHMGR-WIN.UPDATE.RPT.GHF.csv 
+INSTALL-MODULE PSWINDOWSUPDATE -FORCE IMPORT-MODULE PSWINDOWSUPDATE
+GET-WINDOWSUPDATE –KBARTICLEID KB5034119 -HIDE –CONFIRM:$FALSE 
+GET-WINDOWSUPDATE -ISHIDDEN REMOVE-WINDOWSUPDATE -KBARTICLEID KB5034119 -CONFIRM:$FALSE 
+GET-PACKAGE -NAME "7-Zip*" | UNINSTALL-PACKAGE -ERRORACTION SILENTLYCONTINUE 
+HIDE-WINDOWSUPDATE -KBARTICLEID KB5034119 -CONFIRM:$FALSE
+GET-HOTFIX -ID KB5034119 -COMPUTERNAME PDCRTS1 -ERRORACTION 2 
+GET-WINDOWSPACKAGE -ONLINE -PACKAGENAME "KB5034119" | REMOVE-WINDOWSPACKAGE -ONLINE -NORESTART -VERBOSE 
+GET-WINDOWSUPDATELOG GET-HOTFIX -ID KB5034119 -COMPUTERNAME PDCDSSRCS1
+//
+// INSTALL PATCH:
+DISM /ONLINE /ADD-PACKAGE /PACKAGEPATH:C:\TEMP\PATCHES\KB5035962.cab
+DISM /ONLINE /ADD-PACKAGE /PACKAGEPATH:C:\TEMP\PATCHES\KB5035855.cab
+//
+PSCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} WUSA -ARGUMENTLIST {REMFILEPath} -WAIT";
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCSVN3 WUSA -ARGUMENTLIST \\PDCSVN3\C$\TEMP\PATCHES\KB5044293.msu -WAIT"; 
+//
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCTRNPLM1 DISM /ONLINE /ADD-PACKAGE /PACKAGEPATH:\\PDCTRNPLM1\C$\TEMP\PATCHES\KB5043124.cab
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDC1 DISM /ONLINE /ADD-PACKAGE /PACKAGEPATH:\\PDCDC1\C$\TEMP\PATCHES\KB5035962.cab
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\SDCDSSDB1 DISM /ONLINE /ADD-PACKAGE /PACKAGEPATH:\\SDCDSSDB1\C$\TEMP\PATCHES\KB5035855.cab
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\SDCDSSRCS1 DISM /ONLINE /ADD-PACKAGE /PACKAGEPATH:\\SDCDSSRCS1\C$\TEMP\PATCHES\KB5035855.cab
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\SDCDSSHV1 DISM /ONLINE /ADD-PACKAGE /PACKAGEPATH:\\SDCDSSHV1\C$\TEMP\PATCHES\KB5035855.cab
+//
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\10.165.4.71 WMIC QFE LIST FULL /FORMAT:TABLE
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\10.165.4.71 SYSTEMINFO | FIND “KB”
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCDSSRCS1 DISM /ONLINE /GET-PACKAGES | FINDSTR {LstPatches}"; 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCDSSRCS1 DISM /ONLINE /GET-PACKAGES"; 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCDSSRCS1 DISM /ONLINE /GET-PACKAGES | FINDSTR 'KB'"; 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCDSSRCS1 DISM /ONLINE /GET-PACKAGES | FINDSTR {GETFName}"; 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCRTS1 DISM /ONLINE /GET-PACKAGES | FINDSTR KB5034119 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRCS1 DISM /ONLINE /GET-PACKAGES /FORMAT:TABLE
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRCS1 DISM /ONLINE /GET-PACKAGES | FINDSTR 'KB'
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} DISM /ONLINE /GET-PACKAGES | FINDSTR '{KBNOName}'"; 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} DISM /ONLINE /GET-PACKAGES | FINDSTR 'KB'"; 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} DISM /ONLINE /GET-PACKAGES | FINDSTR 'KB'";
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} DISM /ONLINE /GET-PACKAGES | FINDSTR KB";
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRCS1 GET-WINDOWSPACKAGE -ONLINE -PACKAGENAME "KB5032391" | REMOVE-WINDOWSPACKAGE -ONLINE -NORESTART -VERBOSE 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRTS1 (GET-HOTFIX | SORT-OBJECT -PROPERTY INSTALLEDON)
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRCS1 GET-HOTFIX -DESCRIPTION SECURITY*
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRCS1 GET-HOTFIX -DESCRIPTION SECURITY* -COMPUTERNAME PDCDSSRCS1 -CREDENTIAL .\Change_Before_FAT
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\PDCDSSRCS1 (GET-HOTFIX| SORT-OBJECT -PROPERTY INSTALLEDON)[-1]
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} (GET-HOTFIX | SORT-OBJECT -PROPERTY INSTALLEDON)"; 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} WMIC QFE LIST BRIEF | FIND 'KB5032391'"; 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} SYSTEMINFO | FINDSTR {KBNOName}"; 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} WMIC QFE LIST BRIEF | FIND "KB""; 
+&C:\PSTOOLS\PSEXEC64.exe -accepteula -s \\{REMSYSName} SYSTEMINFO.exe | FINDSTR KB"; 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PCCXOS1 GET-HOTFIX -ID {FILEName} -COMPUTERNAME {REMSYSName} -ERRORACTION 2"; 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PCCXOS1 GET-PACKAGE -NAME {FILEName} -UNINSTALL -PACKAGE -ERRORACTION SILENTLYCONTINUE";
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCDSSRCS1 GET-PACKAGE -NAME 'Microsoft Edge.msi'" -UNINSTALL -PACKAGE -ERRORACTION SILENTLYCONTINUE 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PCCXOS1 GET-HOTFIX -ID KB5034119 -COMPUTERNAME PCCXOS1 -ERRORACTION 2 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PCCXOS1 GET-HOTFIX -COMPUTERNAME PCCXOS1 | SELECT HOTFIXID, DESCRIPTION, INSTALLEDON | SORT-OBJECT HOTFIXID 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PCCXOS1 GET-WINDOWSPACKAGE -ONLINE -PACKAGENAME "KB5034119" 
+&C:\PSTOOLS\PsExec64.exe -accepteula -s \\PDCDSSRCS1 GET-WINDOWSPACKAGE -ONLINE -PACKAGENAME "KB5034119" | REMOVE-WINDOWSPACKAGE -ONLINE -NORESTART -VERBOSE"
+&C:\PSTOOLS\PsExec64.exe -accepteula -s GET-HOTFIX -COMPUTERNAME {REMSYSName} | SELECT HOTFIXID, DESCRIPTION, INSTALLEDON | SORT-OBJECT HOTFIXID";
+&C:\PSTOOLS\PsExec64.exe -accepteula -s GET-HOTFIX | SELECT HOTFIXID, DESCRIPTION, INSTALLEDON | SORT-OBJECT HOTFIXID";
+&C:\PSTOOLS\PsExec64.exe -accepteula -s GET-HOTFIX | SELECT-OBJECT -PROPERTY HOTFIXID, INSTALLEDON";
+// *************************************************************************************************************: 
+// INSTALL EXE:
+// PSEXEC.exe \MACHINE_NAME -u USER_NAME -p PASSWORD -w "\JCOLIN\TWClient" cmd /c "\JCOLIN\TWClient\TW1.17.19.exe"
+// START-PROCESS -FILEPATH “\\{REMSYSName}\{REMFILEPath}” -ARGUMENTLIST ‘/S’ -VERB RUNAS -WAIT
+// psexec \\remote-pc -u “DOMAIN\Administrator” -p “password” cmd /c “msiexec.exe /i “\\server\share\application.msi” /quiet /norestart”
+// PSCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} MSIEXEC /p \\{REMSYSName}\{REMFILEPath}";
+// PSCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} cmd /c {REMFILEPath} /i \\{REMSYSName}\{REMFILEPath} /QUIET /NORESTART";
+// PSCmd = $@"&{PSEXECPath} -accepteula -s \\{REMSYSName} cmd /c \\{REMSYSName}\{REMFILEPath} /QUIET /NORESTART";
